@@ -9,6 +9,7 @@ assembly_info:
   assembly_informational_version: '{version}'
 dotnet_csproj:
   patch: true
+patch: true
   file: '**\*.csproj'
   version: '{version}'
   package_version: '{version}'
