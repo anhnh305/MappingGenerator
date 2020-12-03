@@ -162,4 +162,128 @@ var memberDeclarationSyntaxes = mappingDeclaration.Members.Select(async x =>
             return generatedClass;
         }
     }
+ var memberDeclarationSyntaxes = mappingDeclaration.Members.Select(async x =>
+            {
+                if (x is MethodDeclarationSyntax methodDeclaration)
+                {
+                    var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+                    var statements = ImplementorEngine.CanProvideMappingImplementationFor(methodSymbol) ? await ImplementorEngine.GenerateMappingStatements(methodSymbol, syntaxGenerator, context.SemanticModel, mappingContext).ConfigureAwait(false) :
+                        new List<StatementSyntax>()
+                        {
+                            GenerateThrowNotSupportedException(context, syntaxGenerator, methodSymbol.Name)
+                        };
+
+                    var methodDeclarationSyntax = ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
+                        methodDeclaration.Identifier.Text,
+                        parameters: methodDeclaration.ParameterList.Parameters,
+                        accessibility: Accessibility.Public,
+                        modifiers: DeclarationModifiers.Virtual,
+                        typeParameters: methodDeclaration.TypeParameterList?.Parameters.Select(xx => xx.Identifier.Text),
+                        returnType: methodDeclaration.ReturnType
+                    )).WithBody(SyntaxFactory.Block(statements));
+                    return methodDeclarationSyntax;
+                }
+                return x;
+            });
+            var mappingClass = (ClassDeclarationSyntax)syntaxGenerator.ClassDeclaration(
+                mappingDeclaration.Identifier.Text.Substring(1),
+                accessibility: Accessibility.Public,
+                modifiers: DeclarationModifiers.Partial,
+                interfaceTypes: new List<SyntaxNode>()
+                {
+                    syntaxGenerator.TypeExpression(interfaceSymbol)
+                },
+                members: await Task.WhenAll(memberDeclarationSyntaxes));
+            
+            var newRoot = WrapInTheSameNamespace(mappingClass, processedNode);
+            var usings = new List<UsingDirectiveSyntax>()
+            {
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Linq")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(interfaceSymbol.ContainingNamespace.ToDisplayString()))
+            };
+
+            var immutableList = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.IImmutableList`1");
+            if (immutableList != null)
+            {
+                usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Immutable")));
+            }
+
+            return new GenerationResult()
+            {
+                Members = SyntaxFactory.SingletonList(newRoot),
+                Usings = new SyntaxList<UsingDirectiveSyntax>(usings)
+            };
+        }
+var memberDeclarationSyntaxes = mappingDeclaration.Members.Select(async x =>
+            {
+                if (x is MethodDeclarationSyntax methodDeclaration)
+                {
+                    var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+                    var statements = ImplementorEngine.CanProvideMappingImplementationFor(methodSymbol) ? await ImplementorEngine.GenerateMappingStatements(methodSymbol, syntaxGenerator, context.SemanticModel, mappingContext).ConfigureAwait(false) :
+                        new List<StatementSyntax>()
+                        {
+                            GenerateThrowNotSupportedException(context, syntaxGenerator, methodSymbol.Name)
+                        };
+
+                    var methodDeclarationSyntax = ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
+                        methodDeclaration.Identifier.Text,
+                        parameters: methodDeclaration.ParameterList.Parameters,
+                        accessibility: Accessibility.Public,
+                        modifiers: DeclarationModifiers.Virtual,
+                        typeParameters: methodDeclaration.TypeParameterList?.Parameters.Select(xx => xx.Identifier.Text),
+                        returnType: methodDeclaration.ReturnType
+                    )).WithBody(SyntaxFactory.Block(statements));
+                    return methodDeclarationSyntax;
+                }
+                return x;
+            });
+        private static IEnumerable<INamedTypeSymbol> FindCustomMapperTypes(AttributeData markerAttribute)
+        {
+            if (markerAttribute.NamedArguments != null)
+            {
+                foreach (var argument in markerAttribute.NamedArguments)
+                {
+                    if (argument.Key == nameof(MappingInterface.CustomStaticMappers) &&
+                        argument.Value.Kind == TypedConstantKind.Array && argument.Value.Type is IArrayTypeSymbol arrayType &&
+                        arrayType.ElementType.ToDisplayString() == "System.Type")
+                    {
+                        foreach (var typedConstant in argument.Value.Values)
+                        {
+                            if (typedConstant.Kind == TypedConstantKind.Type &&
+                                typedConstant.Value is INamedTypeSymbol typeWithConverters)
+                            {
+                                yield return typeWithConverters;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static StatementSyntax GenerateThrowNotSupportedException(TransformationContext context, SyntaxGenerator syntaxGenerator, string methodName)
+        {
+            var notImplementedExceptionType = context.SemanticModel.Compilation.GetTypeByMetadataName("System.NotSupportedException");
+            var createNotImplementedException = syntaxGenerator.ObjectCreationExpression(notImplementedExceptionType,
+                
+                syntaxGenerator.LiteralExpression($"'{methodName}' method signature is not supported by {GeneratorName}"));
+            return (StatementSyntax)syntaxGenerator.ThrowStatement(createNotImplementedException);
+        }
+
+        private static MemberDeclarationSyntax WrapInTheSameNamespace(ClassDeclarationSyntax generatedClass, SyntaxNode ancestor)
+        {
+            if (ancestor is NamespaceDeclarationSyntax namespaceDeclaration)
+            {
+                return SyntaxFactory.NamespaceDeclaration(namespaceDeclaration.Name.WithoutTrivia())
+                    .AddMembers(generatedClass);
+            }
+
+            if (ancestor.Parent != null)
+            {
+                return WrapInTheSameNamespace(generatedClass, ancestor.Parent);
+            }
+
+            return generatedClass;
+        }
+    }
 }
