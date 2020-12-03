@@ -91,7 +91,29 @@ namespace MappingGenerator.OnBuildGenerator
                 Usings = new SyntaxList<UsingDirectiveSyntax>(usings)
             };
         }
+var memberDeclarationSyntaxes = mappingDeclaration.Members.Select(async x =>
+            {
+                if (x is MethodDeclarationSyntax methodDeclaration)
+                {
+                    var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+                    var statements = ImplementorEngine.CanProvideMappingImplementationFor(methodSymbol) ? await ImplementorEngine.GenerateMappingStatements(methodSymbol, syntaxGenerator, context.SemanticModel, mappingContext).ConfigureAwait(false) :
+                        new List<StatementSyntax>()
+                        {
+                            GenerateThrowNotSupportedException(context, syntaxGenerator, methodSymbol.Name)
+                        };
 
+                    var methodDeclarationSyntax = ((MethodDeclarationSyntax)syntaxGenerator.MethodDeclaration(
+                        methodDeclaration.Identifier.Text,
+                        parameters: methodDeclaration.ParameterList.Parameters,
+                        accessibility: Accessibility.Public,
+                        modifiers: DeclarationModifiers.Virtual,
+                        typeParameters: methodDeclaration.TypeParameterList?.Parameters.Select(xx => xx.Identifier.Text),
+                        returnType: methodDeclaration.ReturnType
+                    )).WithBody(SyntaxFactory.Block(statements));
+                    return methodDeclarationSyntax;
+                }
+                return x;
+            });
         private static IEnumerable<INamedTypeSymbol> FindCustomMapperTypes(AttributeData markerAttribute)
         {
             if (markerAttribute.NamedArguments != null)
