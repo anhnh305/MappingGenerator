@@ -94,6 +94,12 @@ public UserDTO(string firstName, string lastName, int age, int cash)
 }
 ```
 
+|Branch   | Status  |
+|---------|---------|
+|Master   | [![Build status](https://ci.appveyor.com/api/projects/status/v73nnoo09cc8kkmo/branch/master?svg=true)](https://ci.appveyor.com/project/cezarypiatek/mappinggenerator/branch/master)|
+|Develop  | [![Build status](https://ci.appveyor.com/api/projects/status/v73nnoo09cc8kkmo/branch/develop?svg=true)](https://ci.appveyor.com/project/cezarypiatek/mappinggenerator/branch/develop)|
+
+
 ![Generating multi-parameter constructor](/doc/multiparameterconstructor.gif)
 
 
