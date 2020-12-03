@@ -84,6 +84,8 @@ public UserDTO(UserEntity user)
 ```
 ![Generating mapping constructor implementation](doc/mapping_constructor.gif)
 
+
+
 Constructor method that takes more than one parameter
 
 ```csharp
@@ -92,13 +94,19 @@ public UserDTO(string firstName, string lastName, int age, int cash)
 }
 ```
 
+
+
 |Branch   | Status  |
 |---------|---------|
 |Master   | [![Build status](https://ci.appveyor.com/api/projects/status/v73nnoo09cc8kkmo/branch/master?svg=true)](https://ci.appveyor.com/project/cezarypiatek/mappinggenerator/branch/master)|
 |Develop  | [![Build status](https://ci.appveyor.com/api/projects/status/v73nnoo09cc8kkmo/branch/develop?svg=true)](https://ci.appveyor.com/project/cezarypiatek/mappinggenerator/branch/develop)|
 
 
+
+
 ![Generating multi-parameter constructor](/doc/multiparameterconstructor.gif)
+
+
 
 
 
@@ -111,6 +119,8 @@ public void UpdateWith(UserEntity en)
 }
 ```
 
+
+
 ![Generating update member method imeplementation](doc/update_member_method.gif)
 
 Void member method with more than one parameter
@@ -120,6 +130,8 @@ public void Update(string firstName, string lastName, int age)
 }
 ```
 ![](/doc/multiparameterupdate.gif)
+
+
 
 
 ### Generate inline code for fixing Compiler Errors: 
