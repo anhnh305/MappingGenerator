@@ -9,6 +9,7 @@
 // Final comment
 //------------------------------------------------------------------------------
 
+
 namespace MappingGenerator
 {
     using System;
